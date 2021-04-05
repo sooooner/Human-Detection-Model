@@ -1,6 +1,28 @@
 import numpy as np
 import tensorflow as tf
+import pandas as pd
+
 from utils.intersection_over_union import *
+
+def ground_truth_generator(df):
+    df['ratio'] = df.apply(lambda x: 'w' if x['x_max'] - x['x_min'] > x['y_max'] - x['y_min'] else 'h', axis=1)
+    df['x_min'] = df.apply(lambda x: x['x_min'] - (x['x_max'] - x['x_min'])*.1 if x['ratio'] == 'h' else x['x_min'], axis=1)
+    df['x_max'] = df.apply(lambda x: x['x_max'] + (x['x_max'] - x['x_min'])*.1 if x['ratio'] == 'h' else x['x_max'], axis=1)
+    df['y_min'] = df.apply(lambda x: x['y_min'] - (x['y_max'] - x['y_min'])*.1 if x['ratio'] == 'w' else x['y_min'], axis=1)
+    df['y_max'] = df.apply(lambda x: x['y_max'] + (x['y_max'] - x['y_min'])*.1 if x['ratio'] == 'w' else x['y_max'], axis=1)
+
+    ground_truth = df.iloc[:,:1].copy() 
+    ground_truth['x_min'] = df['x_min'] - (df['x_max'] - df['x_min'])*.05
+    ground_truth['x_max'] = df['x_max'] + (df['x_max'] - df['x_min'])*.05
+    ground_truth['y_min'] = df['y_min'] - (df['y_max'] - df['y_min'])*.05
+    ground_truth['y_max'] = df['y_max'] + (df['y_max'] - df['y_min'])*.05
+
+    ground_truth['w'] = ground_truth['x_max'] - ground_truth['x_min']
+    ground_truth['h'] = ground_truth['y_max'] - ground_truth['y_min']
+    ground_truth['x'] = ground_truth['w']/2 + ground_truth['x_min']
+    ground_truth['y'] = ground_truth['h']/2 + ground_truth['y_min']
+
+    return ground_truth
 
 def gt_generator(target):
     x_min = np.min(target[::2])
@@ -69,8 +91,7 @@ def label_generator(GT, anchor_boxes, out_boundaries_indxes):
     reg_label[indices] = np.stack([tx, ty, tw, th]).T
 
     return cls_label, reg_label
-
-
+    
 def get_iou(rois, gts):
     box1_area = tf.cast(rois[:, :, 2] * rois[:, :, 2], tf.float64)
     box2_area = tf.cast(gts[:,2] * gts[:,3], tf.float64)

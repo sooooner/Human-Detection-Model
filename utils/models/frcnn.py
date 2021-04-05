@@ -1,58 +1,45 @@
 import tensorflow as tf
-from utils.base_model import get_base
-from utils.models.region_proposal_network import RPN
+from utils.models.rpn import RPN
 from utils.models.classifier import Classifier
-from utils.models.layers import RoIPooling
+from utils.models.layers import *
 
-class Faster_RCNN(tf.kersa.Model):
-    def __init__(self, anchor_boxes, **kwargs):
+class Faster_RCNN(tf.keras.models.Model):
+    def __init__(self, img_size, anchor_boxes, k, n_sample, backbone, rpn_lambda, pool_size, num_rois, batch_size, classifier_lambda, **kwargs):
         super(Faster_RCNN, self).__init__(*kwargs)
+        self.img_size = img_size
         self.anchor_boxes = anchor_boxes
-        self.rpn = RPN()
-        self.roipooling = RoIPooling()
-        self.classifier = Classifier()
-        self.rpn_train = False
-        self.classifier_train = False
+        self.k = k
+        self.n_sample = n_sample
+        self.backbone = backbone
+        self.rpn_lambda = rpn_lambda
+        self.pool_size = pool_size
+        self.num_rois = num_rois
+        self.batch_size = batch_size
+        self.classifier_lambda = classifier_lambda
+        self.n_train_pre_nms = 12000
+        self.n_train_post_nms = 2000
+        self.n_test_pre_nms = 6000
+        self.n_test_post_nms = 300
+        self.iou_threshold = 0.7
+
+        self.rpn = RPN(img_size= self.img_size, anchor_boxes=self.anchor_boxes, k=self.k, n_sample=self.n_sample, backbone=self.backbone, rpn_lambda=self.rpn_lambda, name='rpn')
+        self.get_candidate = get_candidate_layer(name='get_candidate')
+        self.get_nms = NMS(iou_threshold=self.iou_threshold, name='get_nms')
+        self.roipool = RoIpool(pool_size=self.pool_size, num_rois=self.num_rois, batch_size=self.batch_size, name='roipool')
+        self.classifier = Classifier(classifier_lambda=self.classifier_lambda, name='classifier')
+        self.train_stage = None
 
     def compile(self, rpn_optimizer, classifier_optimizer):
         super(Faster_RCNN, self).compile()
-        self.rpn.optimizer = rpn_optimizer
-        self.classifier.optimizer = classifier_optimizer
-        
-    def train_step(self, data):
-        x, y = data
-        y_cls = y[0]
-        y_reg = y[1]
-        
-        if self.rpn_train:
-            self.classifier.trainable = False
-            self.rpn.trainable = True
-            result = self.rpn.train_step(x, (y_cls, y_reg))
-            
-        if self.classifier_train:
-            self.classifier.trainable = True
-            self.rpn.trainable = False
-            scores, bboxes = self(x)
-            result = self.classifier.train_step(x, (y_cls, y_reg))
-        return result
-    
-    def test_step(self, data):
-        x, y = data
-        y_cls = y[0]
-        y_reg = y[1]
-        rpn_lambda = 5
-        
-        cls, bbox_reg, _ = self(x, training=False)
-        cls_loss = self.Cls_Loss(y_cls, cls)
-        reg_loss = self.Reg_Loss(y_reg, bbox_reg)
-        losses = cls_loss + rpn_lambda * reg_loss
+        self.rpn.compile(optimizer=rpn_optimizer)
+        self.classifier.compile(optimizer=classifier_optimizer)
 
-        self.test_loss_tracker.update_state(losses)
-        return {'classifier_loss_val': self.test_loss_tracker.result()}
-    
-    # def call(self, inputs):
-    #     scores, rps, feature_map = self.rpn(inputs)
-    #     rois = get_rois(scores, rps, self.anchor_boxes)
-    #     roi_projections_tensor, bboxes_reg_labels, labels = NMS(rois, scores, gts, feature_map)
-    #     scores, bboxes = self.classifier(roi_projections_tensor)
-    #     return scores, bboxes
+    def call(self, inputs):
+        scores, rps, feature_map = self.rpn(inputs)
+        rps = self.rpn.inverse_bbox_regression(rps)
+        candidate_area, scores = self.get_candidate((scores, rps, self.n_test_pre_nms))
+        nms = self.get_nms((candidate_area, scores, self.n_test_post_nms))
+        rois = self.roipool((feature_map, nms))
+        _, bbox_reg, nms = self.classifier((rois, nms))
+        predict = self.classifier.inverse_bbox_regression(bbox_reg, nms)
+        return predict

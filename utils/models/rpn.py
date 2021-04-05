@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from utils.base_model import get_base
-
+from utils.models.base_model import get_base
 
 class RPN(tf.keras.models.Model):
     def __init__(self, img_size, anchor_boxes, k=5*5, n_sample=32, backbone='resnet50', rpn_lambda=10, **kwargs):
@@ -15,10 +14,10 @@ class RPN(tf.keras.models.Model):
         self.rpn_lambda = rpn_lambda
 
         self.base_model = get_base(self.img_size, model=self.backbone)
-        self.window = tf.keras.layers.Conv2D(filters=256, kernel_size=3, strides=1, padding='same')
-        self.bbox_reg = tf.keras.layers.Conv2D(filters=self.k*4, kernel_size=1)
+        self.window = tf.keras.layers.Conv2D(filters=256, kernel_size=3, strides=1, padding='same', name='window')
+        self.bbox_reg = tf.keras.layers.Conv2D(filters=self.k*4, kernel_size=1, name='bbox_reg')
         self.bbox_reg_reshape = tf.keras.layers.Reshape((-1, 4), name='reg_out')
-        self.cls = tf.keras.layers.Conv2D(filters=self.k, kernel_size=1, activation='sigmoid')
+        self.cls = tf.keras.layers.Conv2D(filters=self.k, kernel_size=1, activation='sigmoid', name='cls')
         self.cls_reshape = tf.keras.layers.Reshape((-1, 1), name='cls_out')
 
     def compile(self, optimizer, **kwargs):
@@ -27,19 +26,16 @@ class RPN(tf.keras.models.Model):
         self.optimizer = optimizer
         super(RPN, self).compile(**kwargs)
     
-    @tf.function
     def Cls_Loss(self, y_true, y_pred):
         indices = tf.where(tf.not_equal(y_true, tf.constant(-1.0, dtype=tf.float32)))
         target = tf.gather_nd(y_true, indices)
         output = tf.gather_nd(y_pred, indices)
         return tf.losses.BinaryCrossentropy(reduction=tf.losses.Reduction.SUM)(target, output)/self.n_sample
 
-    @tf.function
     def Reg_Loss(self, y_true, y_pred):
         indices = tf.reduce_any(tf.not_equal(y_true, 0), axis=-1)
         return tf.losses.Huber(reduction=tf.losses.Reduction.SUM)(y_true[indices], y_pred[indices])/self.num_of_anchor
 
-    @tf.function
     def train_step(self, data):
         x, y = data
         y_cls = y[0]
@@ -57,7 +53,6 @@ class RPN(tf.keras.models.Model):
         self.loss_tracker.update_state(losses)
         return {'rpn_loss': self.loss_tracker.result()}
 
-    @tf.function
     def test_step(self, data):
         x, y = data
         y_cls = y[0]
@@ -71,7 +66,6 @@ class RPN(tf.keras.models.Model):
         self.test_loss_tracker.update_state(losses)
         return {'rpn_loss_val': self.test_loss_tracker.result()}
 
-    @tf.function
     def bbox_regression(self, boxes):
         tx = (boxes[:, :, 0] - self.anchor_boxes[:, 0]) / self.anchor_boxes[:, 2]
         ty = (boxes[:, :, 1] - self.anchor_boxes[:, 1]) / self.anchor_boxes[:, 3]
@@ -87,7 +81,6 @@ class RPN(tf.keras.models.Model):
         gh = self.anchor_boxes[:, 3] * tf.exp(boxes[:, :, 3])
         return tf.stack([gx, gy, gw, gh], axis=-1)
         
-    @tf.function
     def call(self, inputs):
         feature_extractor = self.base_model(inputs)
         intermediate = self.window(feature_extractor)

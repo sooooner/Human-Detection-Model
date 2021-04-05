@@ -71,6 +71,4 @@ def NMS(rois, scores, feature_map):
 
     return roi_projections_tensor, nmses, cls_labels
 
-    
-# bboxes_reg = box_regression(nmses, gts)
 
