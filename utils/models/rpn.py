@@ -66,6 +66,7 @@ class RPN(tf.keras.models.Model):
         self.test_loss_tracker.update_state(losses)
         return {'rpn_loss_val': self.test_loss_tracker.result()}
 
+    @tf.function
     def bbox_regression(self, boxes):
         tx = (boxes[:, :, 0] - self.anchor_boxes[:, 0]) / self.anchor_boxes[:, 2]
         ty = (boxes[:, :, 1] - self.anchor_boxes[:, 1]) / self.anchor_boxes[:, 3]

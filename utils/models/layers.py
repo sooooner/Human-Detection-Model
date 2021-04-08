@@ -34,7 +34,6 @@ class get_candidate_layer(tf.keras.layers.Layer):
         rois = tf.gather_nd(rois, orders, batch_dims=1)
         scores = tf.gather_nd(scores, orders, batch_dims=1)
         return rois, scores
-
 class NMS(tf.keras.layers.Layer):
     def __init__(self, iou_threshold=0.7, **kwargs):
         self.iou_threshold = iou_threshold
@@ -53,10 +52,8 @@ class NMS(tf.keras.layers.Layer):
         return nms
 
 class RoIpool(tf.keras.layers.Layer):
-    def __init__(self, pool_size=7, num_rois=128, batch_size=16, **kwargs):
+    def __init__(self, pool_size=7, **kwargs):
         self.pool_size = pool_size
-        self.num_rois = num_rois
-        self.batch_size = batch_size
         super(RoIpool, self).__init__(**kwargs)
 
     def cal_rois_ratio(self, nmses, size=[432, 768]):
@@ -69,11 +66,15 @@ class RoIpool(tf.keras.layers.Layer):
     def call(self, inputs):
         feature_map, nmses = inputs
         n_channel = feature_map.shape[-1]
+        batch_size = nmses.shape[0]
+        num_rois = nmses.shape[1]
+        if batch_size is None:
+            batch_size = 16
         nmses = self.cal_rois_ratio(nmses)
         rois = tf.image.crop_and_resize(
             feature_map, 
             tf.reshape(nmses, (-1, 4)), 
-            box_indices=[i for i in range(self.batch_size) for _ in range(self.num_rois)], 
+            box_indices=[i for i in range(batch_size) for _ in range(num_rois)], 
             crop_size=[self.pool_size, self.pool_size]
         )
-        return tf.reshape(rois, shape=(self.batch_size, self.num_rois, self.pool_size, self.pool_size, n_channel))
+        return tf.reshape(rois, shape=(batch_size, num_rois, self.pool_size, self.pool_size, n_channel))

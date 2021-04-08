@@ -1,10 +1,9 @@
 import tensorflow as tf
 import numpy as np
-class Classifier(tf.keras.models.Model):
-    def __init__(self, classifier_lambda=1, **kwargs):
-        super(Classifier, self).__init__(**kwargs)
-        self.classifier_lambda = classifier_lambda
 
+class Classifier(tf.keras.models.Model):
+    def __init__(self, **kwargs):
+        super(Classifier, self).__init__(**kwargs)
         self.conv = tf.keras.layers.Conv2D(2048, 7, 7, name='cls_conv')
         self.flatten = tf.keras.layers.Flatten(name='cls_flatten')
         self.dense = tf.keras.layers.Dense(2048, name='cls_dense')

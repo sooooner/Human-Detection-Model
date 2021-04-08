@@ -21,7 +21,6 @@ def ground_truth_generator(df):
     ground_truth['h'] = ground_truth['y_max'] - ground_truth['y_min']
     ground_truth['x'] = ground_truth['w']/2 + ground_truth['x_min']
     ground_truth['y'] = ground_truth['h']/2 + ground_truth['y_min']
-
     return ground_truth
 
 def gt_generator(target):
@@ -45,7 +44,7 @@ def gt_generator(target):
     ground_truth_h = ground_truth_y_max - ground_truth_y_min
     ground_truth_x = ground_truth_w/2 + ground_truth_x_min
     ground_truth_y = ground_truth_h/2 + ground_truth_y_min
-    return [ground_truth_x, ground_truth_y, ground_truth_w, ground_truth_h]
+    return [ground_truth_x, ground_truth_y, ground_truth_w, ground_truth_h], [ground_truth_x_min, ground_truth_y_min]
 
 def label_generator(GT, anchor_boxes, out_boundaries_indxes):
     cls_label = - np.ones(shape=(anchor_boxes.shape[0]))
@@ -92,26 +91,20 @@ def label_generator(GT, anchor_boxes, out_boundaries_indxes):
 
     return cls_label, reg_label
     
-def get_iou(rois, gts):
-    box1_area = tf.cast(rois[:, :, 2] * rois[:, :, 2], tf.float64)
-    box2_area = tf.cast(gts[:,2] * gts[:,3], tf.float64)
-    
-    x1 = tf.maximum(tf.cast(rois[:, :, 0] - rois[:, :, 2]/2, tf.float64), tf.cast(tf.expand_dims(gts[:, 0] - gts[:, 2]/2, -1), tf.float64))
-    x2 = tf.minimum(tf.cast(rois[:, :, 0] + rois[:, :, 2]/2, tf.float64), tf.cast(tf.expand_dims(gts[:, 0] + gts[:, 2]/2, -1), tf.float64))
-    y1 = tf.maximum(tf.cast(rois[:, :, 1] - rois[:, :, 3]/2, tf.float64), tf.cast(tf.expand_dims(gts[:, 1] - gts[:, 3]/2, -1), tf.float64))
-    y2 = tf.minimum(tf.cast(rois[:, :, 1] + rois[:, :, 3]/2, tf.float64), tf.cast(tf.expand_dims(gts[:, 1] + gts[:, 3]/2, -1), tf.float64))
-    
-    h = tf.maximum(tf.constant(0.0, dtype=tf.float64), y2 - y1)
-    w = tf.maximum(tf.constant(0.0, dtype=tf.float64), x2 - x1)
-    
-    intersect = tf.math.multiply(h, w)
-    union = tf.subtract(tf.add(box1_area, tf.expand_dims(box2_area, -1)), intersect)
-    return tf.divide(intersect, union)
 
-def classifier_label_generator(nms, gts):
+def classifier_label_generator(nms, gts, valid=False):
     ious = get_iou(nms, gts)
     pos_order = tf.argsort(ious * tf.cast(tf.math.greater_equal(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :32]
-    neg_order = tf.argsort(ious * tf.cast(tf.math.less(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :96]
+    
+    if valid:
+        neg_order = tf.argsort(ious * tf.cast(tf.math.less(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :96]
+    else:
+        neg_cnt = tf.reduce_min(tf.math.count_nonzero(ious * tf.cast(tf.math.less(ious, 0.5), tf.float64), axis=1))
+        neg_order = tf.argsort(ious * tf.cast(tf.math.less(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :neg_cnt]
+        indices = tf.range(start=0, limit=neg_cnt, dtype=tf.int32)
+        shuffled_indices = tf.random.shuffle(indices)
+        neg_order = tf.gather(neg_order, shuffled_indices, axis=1)[:, :96]
+
     cls_labels = tf.concat([tf.ones_like(pos_order), tf.zeros_like(neg_order)], axis=1)
     label_order = tf.concat([pos_order, neg_order], axis=1)
     P_boxes = tf.gather(nms, label_order, batch_dims=1)

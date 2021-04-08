@@ -4,7 +4,7 @@ from utils.models.classifier import Classifier
 from utils.models.layers import *
 
 class Faster_RCNN(tf.keras.models.Model):
-    def __init__(self, img_size, anchor_boxes, k, n_sample, backbone, rpn_lambda, pool_size, num_rois, batch_size, classifier_lambda, **kwargs):
+    def __init__(self, img_size, anchor_boxes, k, n_sample, backbone, rpn_lambda, pool_size, **kwargs):
         super(Faster_RCNN, self).__init__(*kwargs)
         self.img_size = img_size
         self.anchor_boxes = anchor_boxes
@@ -13,19 +13,16 @@ class Faster_RCNN(tf.keras.models.Model):
         self.backbone = backbone
         self.rpn_lambda = rpn_lambda
         self.pool_size = pool_size
-        self.num_rois = num_rois
-        self.batch_size = batch_size
-        self.classifier_lambda = classifier_lambda
         self.n_train_pre_nms = 12000
         self.n_train_post_nms = 2000
         self.n_test_pre_nms = 6000
-        self.n_test_post_nms = 300
+        self.n_test_post_nms = 128
         self.iou_threshold = 0.7
 
         self.rpn = RPN(img_size= self.img_size, anchor_boxes=self.anchor_boxes, k=self.k, n_sample=self.n_sample, backbone=self.backbone, rpn_lambda=self.rpn_lambda, name='rpn')
         self.get_candidate = get_candidate_layer(name='get_candidate')
         self.get_nms = NMS(iou_threshold=self.iou_threshold, name='get_nms')
-        self.roipool = RoIpool(pool_size=self.pool_size, num_rois=self.num_rois, batch_size=self.batch_size, name='roipool')
+        self.roipool = RoIpool(pool_size=self.pool_size, name='roipool')
         self.classifier = Classifier(classifier_lambda=self.classifier_lambda, name='classifier')
         self.train_stage = None
 
@@ -40,6 +37,6 @@ class Faster_RCNN(tf.keras.models.Model):
         candidate_area, scores = self.get_candidate((scores, rps, self.n_test_pre_nms))
         nms = self.get_nms((candidate_area, scores, self.n_test_post_nms))
         rois = self.roipool((feature_map, nms))
-        _, bbox_reg, nms = self.classifier((rois, nms))
+        cls, bbox_reg, mask, nms = self.classifier((rois, nms))
         predict = self.classifier.inverse_bbox_regression(bbox_reg, nms)
-        return predict
+        return cls, predict, mask
