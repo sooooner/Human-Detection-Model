@@ -30,7 +30,7 @@ def Anchor_Boxes(img_shape, scales, ratio, model='vgg'):
     input
     img_shape : image shape
     output 
-    numpy array shape (w * h * 9, 4)
+    numpy array shape (w * h * k, 4)
     '''
     if model == 'vgg':
         Ratio = 2**4

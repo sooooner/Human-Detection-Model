@@ -1,7 +1,7 @@
 import tensorflow as tf
+import time
 from IPython.display import display
 from utils.label_generator import classifier_label_generator
-import time
 
 def frcnn_train_step(model, train_dataset, train_stage, epochs=1, valid_dataset=None, change_lr=False, rpn_lr=None, cls_lr=None):
     if change_lr:
