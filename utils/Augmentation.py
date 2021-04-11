@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from math import pi, cos, sin
 
-pixel_shifts = [30]
+pixel_shifts = [25]
 rotation_angles = [10]
 inc_brightness_ratio = 1.2
 dec_brightness_ratio = 0.8

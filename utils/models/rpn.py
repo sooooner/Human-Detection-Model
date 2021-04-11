@@ -15,6 +15,9 @@ class RPN(tf.keras.models.Model):
 
         self.base_model = get_base(self.img_size, model=self.backbone)
         self.window = tf.keras.layers.Conv2D(filters=256, kernel_size=3, strides=1, padding='same', name='window')
+        self.window_bn = tf.keras.layers.BatchNormalization()
+        self.window_relu = tf.keras.layers.ReLU()
+
         self.bbox_reg = tf.keras.layers.Conv2D(filters=self.k*4, kernel_size=1, name='bbox_reg')
         self.bbox_reg_reshape = tf.keras.layers.Reshape((-1, 4), name='reg_out')
         self.cls = tf.keras.layers.Conv2D(filters=self.k, kernel_size=1, activation='sigmoid', name='cls')
@@ -85,6 +88,9 @@ class RPN(tf.keras.models.Model):
     def call(self, inputs):
         feature_extractor = self.base_model(inputs)
         intermediate = self.window(feature_extractor)
+        intermediate = self.window_bn(intermediate)
+        intermediate = self.window_relu(intermediate)
+
         cls = self.cls(intermediate)
         cls = self.cls_reshape(cls)
         bbox_reg = self.bbox_reg(intermediate)

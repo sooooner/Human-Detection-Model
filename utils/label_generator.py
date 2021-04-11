@@ -44,8 +44,9 @@ def gt_generator(target):
     ground_truth_h = ground_truth_y_max - ground_truth_y_min
     ground_truth_x = ground_truth_w/2 + ground_truth_x_min
     ground_truth_y = ground_truth_h/2 + ground_truth_y_min
-    return [ground_truth_x, ground_truth_y, ground_truth_w, ground_truth_h], [ground_truth_x_min, ground_truth_y_min]
-
+    # return [ground_truth_x, ground_truth_y, ground_truth_w, ground_truth_h], [ground_truth_x_min, ground_truth_y_min]
+    return [ground_truth_x, ground_truth_y, ground_truth_w, ground_truth_h]
+    
 def label_generator(GT, anchor_boxes, out_boundaries_indxes):
     cls_label = - np.ones(shape=(anchor_boxes.shape[0]))
     pos_iou_threshold = 0.7
@@ -91,19 +92,22 @@ def label_generator(GT, anchor_boxes, out_boundaries_indxes):
 
     return cls_label, reg_label
     
-
-def classifier_label_generator(nms, gts, valid=False):
-    ious = get_iou(nms, gts)
-    pos_order = tf.argsort(ious * tf.cast(tf.math.greater_equal(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :32]
     
-    if valid:
-        neg_order = tf.argsort(ious * tf.cast(tf.math.less(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :96]
-    else:
+def classifier_label_generator(nms, gts, valid=False):
+    num_roi = 128
+    pos_ratio = .5
+    num_pos = int(num_roi * pos_ratio)
+    num_neg = int(num_roi - num_pos)
+    ious = get_iou(nms, gts)
+    pos_order = tf.argsort(ious * tf.cast(tf.math.greater_equal(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :num_pos]
+    neg_order = tf.argsort(ious * tf.cast(tf.math.less(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :num_neg]
+    
+    if not valid:
         neg_cnt = tf.reduce_min(tf.math.count_nonzero(ious * tf.cast(tf.math.less(ious, 0.5), tf.float64), axis=1))
         neg_order = tf.argsort(ious * tf.cast(tf.math.less(ious, 0.5), tf.float64), direction='DESCENDING', axis=1)[:, :neg_cnt]
         indices = tf.range(start=0, limit=neg_cnt, dtype=tf.int32)
         shuffled_indices = tf.random.shuffle(indices)
-        neg_order = tf.gather(neg_order, shuffled_indices, axis=1)[:, :96]
+        neg_order = tf.gather(neg_order, shuffled_indices, axis=1)[:, :num_neg]
 
     cls_labels = tf.concat([tf.ones_like(pos_order), tf.zeros_like(neg_order)], axis=1)
     label_order = tf.concat([pos_order, neg_order], axis=1)
@@ -116,3 +120,4 @@ def classifier_label_generator(nms, gts, valid=False):
     tf.stack([tx, ty, tw, th], axis=-1)
     box_labels = tf.stack([tx, ty, tw, th], axis=-1)
     return box_labels, cls_labels, P_boxes
+

@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
+import cv2
 
 def min_max_cal(df):
     df['x_min'] = df.iloc[:, 1:49:2].apply(lambda x: int(min(x)), axis=1)
@@ -95,3 +97,30 @@ def get_rois(scores, rps, anchor_boxes):
     return rois, scores
 
 
+def bbox_nms(img, candidate_area, scores, max_output_size=5, ground_truth_row=False):
+    colors = {k: tuple(map(float, np.random.randint(0, 255, 3)/255)) for k in range(max_output_size)}
+    img_ = img.copy()
+
+    if ground_truth_row is not False:
+        x1 = int(ground_truth_row['x_min'])
+        x2 = int(ground_truth_row['x_max'])
+        y1 = int(ground_truth_row['y_min'])
+        y2 = int(ground_truth_row['y_max'])
+        cv2.rectangle(img_, (x1, y1), (x2, y2), (255, 0, 0), thickness=2)
+
+    selected_indices = tf.image.non_max_suppression(candidate_area, tf.squeeze(tf.cast(scores , tf.float32)), max_output_size=max_output_size, score_threshold=1e-12, iou_threshold=.7)
+    anchors = tf.gather(candidate_area, selected_indices)
+
+    for i, anchor in enumerate(anchors):
+        anchor = anchor_to_coordinate(anchor.numpy())
+        cv2.rectangle(
+            img_, 
+            (int(anchor[0]), int(anchor[2])), (int(anchor[1]), int(anchor[3])), 
+            colors.get(i), 
+            thickness=1
+        )
+
+    fig, ax = plt.subplots(dpi=200)
+    ax.imshow(img_)
+    ax.axis('off')
+    plt.show()
