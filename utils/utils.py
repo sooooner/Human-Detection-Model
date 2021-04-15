@@ -26,7 +26,6 @@ def anchor_box_generator(x, y, scales, ratio):
             anchor_boxes.append([x, y, w, h])
     return anchor_boxes
 
-
 def Anchor_Boxes(img_shape, scales, ratio, model='vgg'):
     '''
     input
