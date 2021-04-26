@@ -22,6 +22,20 @@ class get_candidate_layer(tf.keras.layers.Layer):
         return tf.stack([x, y, w, h], axis=-1)
 
     def call(self, x):
+        scores, rps, n_pre_nms = x
+        rois = self.anchors_clip(rps)
+
+        oobw = tf.expand_dims(tf.cast(tf.math.greater(rois[:, :, 2], 16), tf.float32), -1)
+        oobh = tf.expand_dims(tf.cast(tf.math.greater(rois[:, :, 3], 16), tf.float32), -1)
+        scores = tf.math.multiply(scores, oobw)
+        scores = tf.math.multiply(scores, oobh)
+
+        orders = tf.argsort(scores, direction='DESCENDING', axis=1)[:, :n_pre_nms]
+        rois = tf.gather_nd(rois, orders, batch_dims=1)
+        scores = tf.gather_nd(scores, orders, batch_dims=1)
+        return rois, scores
+
+    def call(self, x):
         scores, rps, n_train_pre_nms = x
         rois = self.anchors_clip(rps)
 
@@ -36,7 +50,7 @@ class get_candidate_layer(tf.keras.layers.Layer):
         return rois, scores
 
 class NMS(tf.keras.layers.Layer):
-    def __init__(self, iou_threshold=0.7, **kwargs):
+    def __init__(self, iou_threshold=0.5, **kwargs):
         self.iou_threshold = iou_threshold
         super(NMS, self).__init__(**kwargs)
 
@@ -46,7 +60,7 @@ class NMS(tf.keras.layers.Layer):
             rois, 
             tf.squeeze(scores), 
             max_output_size=max_output_size,
-            iou_threshold=0.7,
+            iou_threshold=self.iou_threshold,
             pad_to_max_output_size=True
         )[0]
         nms = tf.gather(rois, selected_indices_padded, batch_dims=1)
@@ -65,18 +79,17 @@ class RoIpool(tf.keras.layers.Layer):
         return tf.stack([y1, x1, y2, x2], axis=-1)
 
     def call(self, inputs):
-        # feature_map, nmses, batch_size = inputs
         feature_map, nmses = inputs
         n_channel = feature_map.shape[-1]
         batch_size = nmses.shape[0]
-        num_rois = nmses.shape[1]
         if batch_size is None:
             batch_size = 16
+        num_rois = nmses.shape[1]
         nmses = self.cal_rois_ratio(nmses)
         rois = tf.image.crop_and_resize(
             feature_map, 
             tf.reshape(nmses, (-1, 4)), 
-            box_indices=[i for i in range(batch_size) for _ in range(num_rois)], 
+            box_indices=tf.convert_to_tensor([i for i in range(batch_size) for _ in range(num_rois)]), 
             crop_size=[self.pool_size, self.pool_size]
         )
         return tf.reshape(rois, shape=(batch_size, num_rois, self.pool_size, self.pool_size, n_channel))
