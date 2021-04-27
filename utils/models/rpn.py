@@ -6,8 +6,8 @@ class RPN(tf.keras.models.Model):
     def __init__(self, img_size, anchor_boxes, k=5*5, n_sample=32, backbone='resnet50', rpn_lambda=10, **kwargs):
         super(RPN, self).__init__(**kwargs)
         self.img_size = img_size
-        self.anchor_boxes = anchor_boxes
-        self.num_of_anchor = len(self.anchor_boxes)
+        self.anchor_boxes = tf.convert_to_tensor(anchor_boxes, tf.float32)
+        self.num_of_anchor = self.anchor_boxes.shape[0]
         self.n_sample = n_sample
         self.k = k
         self.backbone = backbone
@@ -15,8 +15,8 @@ class RPN(tf.keras.models.Model):
 
         self.base_model = get_base(self.img_size, model=self.backbone)
         self.window = tf.keras.layers.Conv2D(filters=256, kernel_size=3, strides=1, padding='same', name='window')
-        self.window_bn = tf.keras.layers.BatchNormalization()
-        self.window_relu = tf.keras.layers.ReLU()
+        self.window_bn = tf.keras.layers.BatchNormalization(name='window_bn')
+        self.window_relu = tf.keras.layers.ReLU(name='window_relu')
 
         self.bbox_reg = tf.keras.layers.Conv2D(filters=self.k*4, kernel_size=1, name='bbox_reg')
         self.bbox_reg_reshape = tf.keras.layers.Reshape((-1, 4), name='reg_out')
@@ -33,11 +33,15 @@ class RPN(tf.keras.models.Model):
         indices = tf.where(tf.not_equal(y_true, tf.constant(-1.0, dtype=tf.float32)))
         target = tf.gather_nd(y_true, indices)
         output = tf.gather_nd(y_pred, indices)
+        # return tf.losses.BinaryCrossentropy()(target, output)/self.n_sample
         return tf.losses.BinaryCrossentropy(reduction=tf.losses.Reduction.SUM)(target, output)/self.n_sample
+        # return tf.losses.BinaryCrossentropy(reduction=tf.losses.Reduction.SUM_OVER_BATCH_SIZE)(target, output)/self.n_sample
 
     def Reg_Loss(self, y_true, y_pred):
         indices = tf.reduce_any(tf.not_equal(y_true, 0), axis=-1)
+        # return tf.losses.Huber()(y_true[indices], y_pred[indices])/self.num_of_anchor
         return tf.losses.Huber(reduction=tf.losses.Reduction.SUM)(y_true[indices], y_pred[indices])/self.num_of_anchor
+        # return tf.losses.Huber(reduction=tf.losses.Reduction.SUM_OVER_BATCH_SIZE)(y_true[indices], y_pred[indices])/self.num_of_anchor
 
     def train_step(self, data):
         x, y = data
