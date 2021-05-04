@@ -1,5 +1,7 @@
+__pycache__
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 res
 res/*
 model_weight
+*.jpg
