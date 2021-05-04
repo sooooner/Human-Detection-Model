@@ -35,20 +35,6 @@ class get_candidate_layer(tf.keras.layers.Layer):
         scores = tf.gather_nd(scores, orders, batch_dims=1)
         return rois, scores
 
-    def call(self, x):
-        scores, rps, n_train_pre_nms = x
-        rois = self.anchors_clip(rps)
-
-        oobw = tf.expand_dims(tf.cast(tf.math.greater(rois[:, :, 2], 16), tf.float32), -1)
-        oobh = tf.expand_dims(tf.cast(tf.math.greater(rois[:, :, 3], 16), tf.float32), -1)
-        scores = tf.math.multiply(scores, oobw)
-        scores = tf.math.multiply(scores, oobh)
-
-        orders = tf.argsort(scores, direction='DESCENDING', axis=1)[:, :n_train_pre_nms]
-        rois = tf.gather_nd(rois, orders, batch_dims=1)
-        scores = tf.gather_nd(scores, orders, batch_dims=1)
-        return rois, scores
-
 class NMS(tf.keras.layers.Layer):
     def __init__(self, iou_threshold=0.5, **kwargs):
         self.iou_threshold = iou_threshold
