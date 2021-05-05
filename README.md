@@ -1,48 +1,62 @@
-# Faster R-CNN tensorflow implementation
+# Human Detection Model
+This is a repo that developed a human detection model(Faster-RCNN) using data from the [Motion Keypoint Detection AI Contest](https://dacon.io/competitions/official/235701/overview/description) conducted by dacon.
 
 ## Description
-Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks[[link](https://arxiv.org/abs/1506.01497)]
 
-## structure
+
+Project process description 
++ Description  
+
+## Repo Structure
 
 ```
 .
 └── res/
-    ├── data                               
-    └── ...                               
+    ├── data                                # Data doesn't go up to the repo.
+    └── ...    
+└── description/                                 
+    └── README.md                           # Project process description
 └── utils/      
-    └── models/      
-        ├── __init__.py
-        ├── base_model.py                               
-        ├── classifier.py                          
-        ├── frcnn.py                                 
-        ├── layers.py                                 
-        ├── rpn.py                                 
-        └── train_strp.py       
-    ├── __init__.py
-    ├── Augmentation.py                           
-    ├── intersection_over_union.py                               
-    ├── label_generator.py                               
-    └── utils.py                                 
-├── .gitignore         
-├── requirements.txt   
-├── config.py                                       # model config
-├── description.ipynb                                    # Examples of progress 
-├── fast_rcnn.ipynb                                    # Examples of progress 
-├── Feature Pyramid Network.ipynb                                    # Examples of progress 
-├── README.md                                    # Examples of progress 
-└── train.py                                       # model training and save weight py
+    └── models/                              
+        ├── __init__.py 
+        ├── base_model.py                   # Pre-trained backbone      
+        ├── classifier.py                   # Faster-RCNN's classifier module  
+        ├── frcnn.py                        # Faster-RCNN(Integration of all modules)      
+        ├── layers.py                       # Other model layer functions(RoI Pooling, NMS, ...)           
+        ├── rpn.py                          # Region Proposal Network module
+        └── train_step.py                   # Function for model training in 4 steps
+    ├── __init__.py                                
+    ├── Augmentation.py                     # Data augmentation(Shift, Flip, Add noise, etc...)  
+    ├── intersection_over_union.py          # calculate iou between ground truth and prediction                
+    ├── label_generator.py                  # A function that generate the ground truth          
+    └── utils.py                            # Other necessary functions
+├── .dockerignore                           
+├── .gitignore                              
+├── Dockerfile                              # A file to create an image for development environment
+├── requirements.txt                        # Libraries needed to create images
+├── config.py                               # model config py
+├── fast_rcnn.ipynb                         # Examples of progress 
+├── SQL_loader.ipynb                        # MySQL communication example
+├── README.md                               
+└── train.py                                # model training and save weight py
 ```
 
 ## Usage
+### Data
+Download the data through this [link](https://dacon.io/competitions/official/235701/overview/description)
 
+#### Development environment
+You don't need to clone this repo, just run dockerfile and the development environment to run this repo image will be installed.
+And just follow the command line described below.
+
+If you use MySQL, you can modify train.py and utils.db_uploader.py a little and use it.
+**Refer to SQL_loader.ipynb**
+
+### Docker image build
+```terminal
+docker build {repo image name}:{tag} .
 ```
-python GAN.py --model_save=True
-```
+Then, you can create a container, connect it, and use it.
+
+
  
-+ --model_save : Whether to save the generated model weight(bool, default=True)  
-
-## Result
-
-
-## reference
