@@ -5,3 +5,5 @@ res
 res/*
 model_weight
 *.jpg
+Feature Pyramid Network.ipynb
+resnet backbone.ipynb
