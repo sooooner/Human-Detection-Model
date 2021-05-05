@@ -1,5 +1,6 @@
 import tensorflow as tf
 import pandas as pd
+import config
 
 from utils.models.frcnn import Faster_RCNN
 from utils.label_generator import gt_generator, label_generator
@@ -7,7 +8,7 @@ from utils.Augmentation import *
 from utils.models.train_step import frcnn_train_step
 from utils.utils import df_resize, Anchor_Boxes, anchors_to_coordinates
 
-if __name__ == '__main__':
+def main():
     train_val_dir = 'data/'
 
     Ry = 0.4
@@ -20,6 +21,28 @@ if __name__ == '__main__':
     valid = valid.sample(frac=1).reset_index(drop=True)
     train = df_resize(train, Rx, Ry)
     valid = df_resize(valid, Rx, Ry)
+
+    # # SQL loader
+    # def traingtGenerator():
+    #     Rx, Ry = 0.4, 0.4
+    #     image_size = (1080, 1920, 3)
+    #     size = [int(image_size[0] * Rx), int(image_size[1] * Ry)]
+    #     for i in range(5):
+    #         sql = f"SELECT * FROM images WHERE id = {i+1};" 
+    #         cursor.execute(sql) 
+    #         result = cursor.fetchall()
+    #         img = base64.decodebytes(result[0]['image'])
+    #         img = np.array(Image.open(BytesIO(img)))/255
+    #         img = tf.image.resize(img, size) 
+            
+    #         sql = f"SELECT * FROM keypoint WHERE id = {i+1};" 
+    #         cursor.execute(sql) 
+    #         result = cursor.fetchall()
+    #         target = list(keypoint_row.values[0][1:])
+    #         gt = gt_generator(target)
+    #         cls_label, reg_label = label_generator(gt, anchor_boxes, out_boundaries_indxes)
+            
+    #         yield img, (cls_label, reg_label, gt)
 
     def traingtGenerator():
         Rx, Ry = 0.4, 0.4
@@ -63,6 +86,18 @@ if __name__ == '__main__':
 
                 yield shifted_img, (cls_label, reg_label, gt)
 
+        for i in range(iter_num):
+            img = tf.io.read_file(train_val_dir + 'train/' + train['image'].iloc[i]) 
+            img = tf.image.decode_jpeg(img, channels=3)
+            img = tf.image.resize(img, size)
+            img = img/255
+            target = train.iloc[:,1:49].iloc[i,:]
+            noisy_img = add_noise(img)
+            gt = gt_generator(target)
+            cls_label, reg_label = label_generator(gt, anchor_boxes, out_boundaries_indxes)
+
+            yield noisy_img, (cls_label, reg_label, gt)
+
     def valGenerator():
         Rx, Ry = 0.4, 0.4
         image_size = (1080, 1920, 3)
@@ -80,9 +115,9 @@ if __name__ == '__main__':
 
             yield img, (cls_label, reg_label, gt)
 
-    scales = [140, 160, 180, 210, 240]
-    ratio = [(1/np.sqrt(3), np.sqrt(3)), (1/np.sqrt(2), np.sqrt(2)), (1, 1), (np.sqrt(2), 1/np.sqrt(2)), (np.sqrt(3), 1/np.sqrt(3))]
-    anchor_boxes = Anchor_Boxes((432, 768, 3), scales, ratio)
+    scales = config.SCALES
+    ratio = config.RATIO
+    anchor_boxes = Anchor_Boxes(config.IMG_SIZE, scales, ratio)
 
     bboxes = anchors_to_coordinates(anchor_boxes)
     out_boundaries_indxes = (np.where(bboxes[:, 0] < 0) or np.where(bboxes[:, 2] < 0) or np.where(bboxes[:, 1] > 768) or np.where(bboxes[:, 3] > 432))[0]
@@ -112,13 +147,13 @@ if __name__ == '__main__':
             )
     ).batch(batch_size).prefetch(16*4)    
 
-    img_size=(432, 768, 3)
-    anchor_boxes=anchor_boxes
-    k=5*5
-    n_sample=32
-    backbone='resnet50'
-    rpn_lambda=10**3
-    pool_size=7
+    img_size = config.IMG_SIZE
+    anchor_boxes = anchor_boxes
+    k = config.K
+    n_sample = config.N_SAMPLE
+    backbone = config.BACKBONE
+    rpn_lambda = config.RPN_LAMBDA
+    pool_size = config.POOL_SIZE
 
     frcnn = Faster_RCNN(
         img_size=img_size, 
@@ -148,3 +183,7 @@ if __name__ == '__main__':
         )
 
     frcnn.save_weights("./model_weight/frcnn")
+
+
+if __name__ == '__main__':
+    main()
