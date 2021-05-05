@@ -3,7 +3,6 @@ This is a repo that developed a human detection model(Faster-RCNN) using data fr
 
 ## Description
 
-
 Project process description 
 + Description  
 
@@ -14,6 +13,9 @@ Project process description
 └── res/
     ├── data                                # Data doesn't go up to the repo.
     └── ...    
+└── model_weight/                        
+    ├── weights                             # Weights doesn't go up to the repo.
+    └── ...   
 └── description/                                 
     └── README.md                           # Project process description
 └── utils/      
@@ -46,7 +48,7 @@ Project process description
 Download the data through this [link](https://dacon.io/competitions/official/235701/overview/description)
 
 #### Development environment
-You don't need to clone this repo, just run dockerfile and the development environment to run this repo image will be installed.
+You don't need to clone this repo, just run Dockerfile and the development environment to run this repo image will be installed.
 And just follow the command line described below.
 
 If you use MySQL, you can modify train.py and utils.db_uploader.py a little and use it.
@@ -58,5 +60,24 @@ docker build {repo image name}:{tag} .
 ```
 Then, you can create a container, connect it, and use it.
 
+### Training
+Running train.py will train the model and store the trained weights.
+```terminal
+python train.py
+```
 
- 
+### inference
+When model training is complete, insert your image path and run inference.py, you can see the result.
+```terminal
+python inference.py --path=./res/{img_nam}
+```
+
+## Author
+Soon Ho Kwon
+
+github/sooooner
+https://tnsgh0101.medium.com/
+
+## License
+Copyright © 2016 Jon Schlinkert Released under the MIT license.
+
