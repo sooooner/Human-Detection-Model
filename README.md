@@ -75,7 +75,7 @@ python inference.py --path=./res/{img_nam}
 ## Author
 Soon Ho Kwon
 
-github/sooooner
+github/sooooner  
 https://tnsgh0101.medium.com/
 
 ## License
