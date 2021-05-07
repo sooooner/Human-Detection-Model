@@ -1,5 +1,5 @@
 # Human Detection Model
-This is a repo that developed a human detection model(Faster-RCNN) using data from the [Motion Keypoint Detection AI Contest](https://dacon.io/competitions/official/235701/overview/description) conducted by dacon.
+This is a repo that developed a single human detection model(Faster-RCNN) using data from the [Motion Keypoint Detection AI Contest](https://dacon.io/competitions/official/235701/overview/description) conducted by dacon.
 
 ## Description
 
@@ -16,12 +16,10 @@ Project process description
 └── model_weight/                        
     ├── weights                             # Weights doesn't go up to the repo.
     └── ...   
-└── description/                                 
-    └── README.md                           # Project process description
 └── utils/      
     └── models/                              
         ├── __init__.py 
-        ├── base_model.py                   # Pre-trained backbone      
+        ├── base_model.py                   # Pre-trained backbone(resnet50, resnet101, VGG16)
         ├── classifier.py                   # Faster-RCNN's classifier module  
         ├── frcnn.py                        # Faster-RCNN(Integration of all modules)      
         ├── layers.py                       # Other model layer functions(RoI Pooling, NMS, ...)           
@@ -34,10 +32,10 @@ Project process description
     └── utils.py                            # Other necessary functions
 ├── .dockerignore                           
 ├── .gitignore                              
-├── Dockerfile                              # A file to create an image for development environment
-├── requirements.txt                        # Libraries needed to create images
+├── Dockerfile                              # A file to create an docker image for development environment
+├── requirements.txt                        # Libraries needed to create image
 ├── config.py                               # model config py
-├── fast_rcnn.ipynb                         # Examples of progress 
+├── human_detection.ipynb                   # Examples of progress 
 ├── SQL_loader.ipynb                        # MySQL communication example
 ├── README.md                               
 └── train.py                                # model training and save weight py
@@ -47,18 +45,15 @@ Project process description
 ### Data
 Download the data through this [link](https://dacon.io/competitions/official/235701/overview/description)
 
-#### Development environment
-You don't need to clone this repo, just run Dockerfile and the development environment to run this repo image will be installed.
-And just follow the command line described below.
-
-If you use MySQL, you can modify train.py and utils.db_uploader.py a little and use it.
-**Refer to SQL_loader.ipynb**
-
-### Docker image build
+### Development environment
+You don't need to clone this repo, just run Dockerfile and the development environment to run this repo image will be installed. And just follow the command line described below. (You can just clone and install requirements and use it.)
 ```terminal
-docker build {repo image name}:{tag} .
+docker build --tag {repo image name}:{tag} .
 ```
 Then, you can create a container, connect it, and use it.
+
+If you use MySQL, you can modify train.py and utils/db_uploader.py a little and use it.
+**Refer to SQL_loader.ipynb**
 
 ### Training
 Running train.py will train the model and store the trained weights.
@@ -69,7 +64,7 @@ python train.py
 ### inference
 When model training is complete, insert your image path and run inference.py, you can see the result.
 ```terminal
-python inference.py --path=./res/{img_nam}
+python inference.py --path={img_path}
 ```
 
 ## Author
