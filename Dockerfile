@@ -1,12 +1,12 @@
 FROM tensorflow/tensorflow:latest-jupyter
-MAINTAINER tnsgh0101 <tnsgh0101@gamil.com>
+LABEL maintainer="tnsgh0101 <tnsgh0101@gamil.com>"
 
 EXPOSE 8888/tcp
 
 RUN pip install --upgrade pip
-RUN git clone https://github.com/sooooner/Faster-RCNN.git
+RUN git clone https://github.com/sooooner/Human-Detection-Model.git
 
-WORKDIR /tf/Faster-RCNN/
+WORKDIR /tf/Human-Detection-Model/
 RUN pip install -r requirements.txt
 RUN apt-get -y install libgl1-mesa-glx
 
