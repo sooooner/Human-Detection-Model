@@ -13,8 +13,8 @@ Project process description
 └── res/
     ├── data                                # Data doesn't go up to the repo.
     └── ...    
-└── model_weight/                        
-    ├── weights                             # Weights doesn't go up to the repo.
+└── saved_model/                        
+    ├── saved_model                         # Weights doesn't go up to the repo.
     └── ...   
 └── utils/      
     └── models/                              
@@ -45,10 +45,19 @@ Project process description
 ### Data
 Download the data through this [link](https://dacon.io/competitions/official/235701/overview/description)
 
+### Saved model
+
+
 ### Development environment
 You don't need to clone this repo, just run Dockerfile and the development environment to run this repo image will be installed. And just follow the command line described below. (You can just clone and install requirements and use it.)
 ```terminal
 docker build --tag {repo image name}:{tag} .
+
+docker network {network name}
+docker run -it --name {volume container name} -v {data path}:/data --network {network name} ubuntu /bin/bash
+docker run -it -d --name {mysql name} -p 3306:3306 --network {network name} --volumes-from {volume container name} -e [MYSQL_ALLOW_EMPTY_PASSWORD=ture] mysql
+docker run -it -d --name {tensorflow container name} -p 8888:8888 --network {network name} {repo image name}:{tag}
+docker run -it -d --name {model server name} -p 8500:8500 -p 8501:8501 --network {network name} -v {saved model path}:/models/{model name} -e MODEL_NAME={model name} tensorflow/serving
 ```
 Then, you can create a container, connect it, and use it.
 
@@ -57,6 +66,7 @@ If you use MySQL, you can modify train.py and utils/db_uploader.py a little and 
 
 ### Training
 Running train.py will train the model and store the trained weights.
+However, since it provides a trained model, there is no need to train it separately.
 ```terminal
 python train.py
 ```
@@ -64,7 +74,7 @@ python train.py
 ### inference
 When model training is complete, insert your image path and run inference.py, you can see the result.
 ```terminal
-python inference.py --path={img_path}
+python inference.py 
 ```
 
 ## Author
