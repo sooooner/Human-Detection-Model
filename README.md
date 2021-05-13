@@ -46,7 +46,7 @@ Project process description
 Download the data through this [link](https://dacon.io/competitions/official/235701/overview/description)
 
 ### Saved model
-
+[link](https://drive.google.com/file/d/17IsXYQ6K7iC83RLMqyxiP3hibDJImIgM/view?usp=sharing)
 
 ### Development environment
 You don't need to clone this repo, just run Dockerfile and the development environment to run this repo image will be installed. And just follow the command line described below. (You can just clone and install requirements and use it.)
@@ -61,18 +61,18 @@ docker run -it -d --name {model server name} -p 8500:8500 -p 8501:8501 --network
 ```
 Then, you can create a container, connect it, and use it.
 
-If you use MySQL, you can modify train.py and utils/db_uploader.py a little and use it.
+If you use MySQL, you can modify train.py and utils/db_uploader.py a little and use it.  
 **Refer to SQL_loader.ipynb**
 
 ### Training
-Running train.py will train the model and store the trained weights.
+Running train.py will train the model and store the trained weights.  
 However, since it provides a trained model, there is no need to train it separately.
 ```terminal
 python train.py
 ```
 
 ### inference
-When model training is complete, insert your image path and run inference.py, you can see the result.
+When model training is complete(or received a trained model), insert your image path and run inference.py, you can see the result.
 ```terminal
 python inference.py 
 ```
