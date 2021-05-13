@@ -1,5 +1,7 @@
 import tensorflow as tf
 import pandas as pd
+import pymysql
+import base64
 import config
 
 from utils.models.frcnn import Faster_RCNN
@@ -9,76 +11,52 @@ from utils.models.train_step import frcnn_train_step
 from utils.utils import df_resize, Anchor_Boxes, anchors_to_coordinates
 
 def main():
-    train_val_dir = 'data/'
-
     Ry = 0.4
     Rx = 0.4
     size = (432, 768)
-    train = pd.read_csv('train.csv')
-    valid = pd.read_csv('valid.csv')
 
-    train = train.sample(frac=1).reset_index(drop=True)
-    valid = valid.sample(frac=1).reset_index(drop=True)
-    train = df_resize(train, Rx, Ry)
-    valid = df_resize(valid, Rx, Ry)
+    conn = pymysql.connect(host='mysql', user='root', charset='utf8') 
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    # # SQL loader
-    # def traingtGenerator():
-    #     Rx, Ry = 0.4, 0.4
-    #     image_size = (1080, 1920, 3)
-    #     size = [int(image_size[0] * Rx), int(image_size[1] * Ry)]
-    #     for i in range(5):
-    #         sql = f"SELECT * FROM images WHERE id = {i+1};" 
-    #         cursor.execute(sql) 
-    #         result = cursor.fetchall()
-    #         img = base64.decodebytes(result[0]['image'])
-    #         img = np.array(Image.open(BytesIO(img)))/255
-    #         img = tf.image.resize(img, size) 
-            
-    #         sql = f"SELECT * FROM keypoint WHERE id = {i+1};" 
-    #         cursor.execute(sql) 
-    #         result = cursor.fetchall()
-    #         target = list(keypoint_row.values[0][1:])
-    #         gt = gt_generator(target)
-    #         cls_label, reg_label = label_generator(gt, anchor_boxes, out_boundaries_indxes)
-            
-    #         yield img, (cls_label, reg_label, gt)
+    sql = "USE dacon;" 
+    cursor.execute(sql) 
 
+    sql = "SELECT * FROM images LEFT JOIN keypoint on keypoint.id = images.image_id;" 
+    cursor.execute(sql) 
+    result = cursor.fetchall()
+    train = pd.json_normalize(result)
+
+    # SQL loader
     def traingtGenerator():
-        Rx, Ry = 0.4, 0.4
-        image_size = (1080, 1920, 3)
-        size = [int(image_size[0] * Rx), int(image_size[1] * Ry)]
-        iter_num = len(train)
+        for i in range(len(train)):
+            img = base64.decodebytes(train.iloc[i]['image'])
+            img = tf.image.decode_jpeg(img, channels=3)
+            img = tf.image.resize(img, [432, 768])/255
 
-        for i in range(iter_num):
-            img = tf.io.read_file(train_val_dir + 'train/' + train['image'].iloc[i]) 
-            img = tf.image.decode_jpeg(img, channels=3) 
-            img = tf.image.resize(img, size) 
-            img = img/255                         
-            target = list(train.iloc[:,1:49].iloc[i,:])
+            target = list(train.iloc[0, 5:])
             gt = gt_generator(target)
             cls_label, reg_label = label_generator(gt, anchor_boxes, out_boundaries_indxes)
-
+            
             yield img, (cls_label, reg_label, gt)
         
-        for i in range(iter_num):
-            img = tf.io.read_file(train_val_dir + 'train/' + train['image'].iloc[i]) 
-            img = tf.image.decode_jpeg(img, channels=3) 
-            img = tf.image.resize(img, size) 
-            img = img/255
-            target = train.iloc[:,1:49].iloc[i,:] 
+        for i in range(len(train)):
+            img = base64.decodebytes(train.iloc[i]['image'])
+            img = tf.image.decode_jpeg(img, channels=3)
+            img = tf.image.resize(img, [432, 768])/255
+
+            target = list(train.iloc[0, 5:])
             img, target = left_right_flip(img, target)
             gt = gt_generator(target)
             cls_label, reg_label = label_generator(gt, anchor_boxes, out_boundaries_indxes)
 
             yield img, (cls_label, reg_label, gt)
 
-        for i in range(iter_num):
-            img = tf.io.read_file(train_val_dir + 'train/' + train['image'].iloc[i]) 
+        for i in range(len(train)):
+            img = base64.decodebytes(train.iloc[i]['image'])
             img = tf.image.decode_jpeg(img, channels=3)
-            img = tf.image.resize(img, size)
-            img = img/255
-            target = train.iloc[:,1:49].iloc[i,:]
+            img = tf.image.resize(img, [432, 768])/255
+
+            target = list(train.iloc[0, 5:])
             img_list, target_list = shift_images(img, target)
             for shifted_img, shifted_target in zip(img_list, target_list):
                 gt = gt_generator(shifted_target)
@@ -86,34 +64,18 @@ def main():
 
                 yield shifted_img, (cls_label, reg_label, gt)
 
-        for i in range(iter_num):
-            img = tf.io.read_file(train_val_dir + 'train/' + train['image'].iloc[i]) 
+        for i in range(len(train)):
+            img = base64.decodebytes(train.iloc[i]['image'])
             img = tf.image.decode_jpeg(img, channels=3)
-            img = tf.image.resize(img, size)
-            img = img/255
-            target = train.iloc[:,1:49].iloc[i,:]
+            img = tf.image.resize(img, [432, 768])/255
+
+            target = list(train.iloc[0, 5:])
             noisy_img = add_noise(img)
             gt = gt_generator(target)
             cls_label, reg_label = label_generator(gt, anchor_boxes, out_boundaries_indxes)
 
             yield noisy_img, (cls_label, reg_label, gt)
 
-    def valGenerator():
-        Rx, Ry = 0.4, 0.4
-        image_size = (1080, 1920, 3)
-        size = [int(image_size[0] * Rx), int(image_size[1] * Ry)]
-
-        for i in range(len(valid)):
-            img = tf.io.read_file(train_val_dir + 'val/' + valid['image'].iloc[i]) 
-            img = tf.image.decode_jpeg(img, channels=3) 
-            img = tf.image.resize(img, size) 
-            img = img/255     
-
-            target = list(valid.iloc[:,1:49].iloc[i,:])
-            gt = gt_generator(target)
-            cls_label, reg_label = label_generator(gt, anchor_boxes, out_boundaries_indxes)         
-
-            yield img, (cls_label, reg_label, gt)
 
     scales = config.SCALES
     ratio = config.RATIO
@@ -135,17 +97,6 @@ def main():
             )
     ).batch(batch_size).prefetch(16*4)
 
-    valid_dataset = tf.data.Dataset.from_generator(
-        valGenerator,
-        output_signature = (
-                tf.TensorSpec(shape=(size[0], size[1], 3)),
-                (
-                    tf.TensorSpec(shape=(len(anchor_boxes))),
-                    tf.TensorSpec(shape=(len(anchor_boxes),4)),
-                    tf.TensorSpec(shape=(4))
-                )
-            )
-    ).batch(batch_size).prefetch(16*4)    
 
     img_size = config.IMG_SIZE
     anchor_boxes = anchor_boxes
@@ -174,7 +125,6 @@ def main():
         frcnn = frcnn_train_step(
             model=frcnn, 
             train_dataset=train_dataset, 
-            valid_dataset=valid_dataset,
             train_stage=i,
             change_lr=False,
             rpn_lr=None,
@@ -182,8 +132,7 @@ def main():
             epochs=10
         )
 
-    frcnn.save_weights("./model_weight/frcnn")
-
+    frcnn.save_weights("./saved_model/1")
 
 if __name__ == '__main__':
     main()
