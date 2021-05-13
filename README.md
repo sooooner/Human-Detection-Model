@@ -56,7 +56,7 @@ docker build --tag {repo image name}:{tag} .
 docker network {network name}
 docker run -it --name {volume container name} -v {data path}:/data --network {network name} ubuntu /bin/bash
 docker run -it -d --name {mysql name} -p 3306:3306 --network {network name} --volumes-from {volume container name} -e [MYSQL_ALLOW_EMPTY_PASSWORD=ture] mysql
-docker run -it -d --name {tensorflow container name} -p 8888:8888 --network {network name} {repo image name}:{tag}
+docker run -it -d --name {dev container name} -p 8888:8888 --network {network name} {repo image name}:{tag}
 docker run -it -d --name {model server name} -p 8500:8500 -p 8501:8501 --network {network name} -v {saved model path}:/models/{model name} -e MODEL_NAME={model name} tensorflow/serving
 ```
 Then, you can create a container, connect it, and use it.
@@ -72,7 +72,8 @@ python train.py
 ```
 
 ### inference
-When model training is complete(or received a trained model), insert your image path and run inference.py, you can see the result.
+When model training is complete(or received a trained model), insert your image path and run inference.py, you can see the result.  
+**Refer to inference.ipynb**
 ```terminal
 python inference.py 
 ```
