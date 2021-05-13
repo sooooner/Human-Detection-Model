@@ -2,7 +2,6 @@ import argparse
 import pandas as pd
 import pymysql
 from PIL import Image
-import numpy as np
 import base64
 from io import BytesIO
 
