@@ -123,3 +123,27 @@ def bbox_nms(img, candidate_area, scores, max_output_size=5, ground_truth_row=Fa
     ax.imshow(img_)
     ax.axis('off')
     plt.show()
+
+    
+def show_result(img, predictions):
+    max_output_size = 3
+    img_ = img[0].numpy().copy()
+    
+    scores_order = tf.argsort(predictions[0]['output_1'], direction='DESCENDING', axis=0)
+    boxes = tf.squeeze(tf.gather(predictions[0]['output_2'], scores_order))
+    boxes = boxes[boxes[:, 2] > 16]
+    boxes = boxes[boxes[:, 3] > 16][:max_output_size]
+    boxes = tf.math.reduce_mean(boxes, axis=0)
+    
+    anchor = anchor_to_coordinate(boxes.numpy())
+    cv2.rectangle(
+        img_, 
+        (int(anchor[0]), int(anchor[2])), (int(anchor[1]), int(anchor[3])), 
+        (1, 0, 0), 
+        thickness=1
+    )
+    
+    fig, ax = plt.subplots(dpi=200)
+    ax.imshow(img_)
+    ax.axis('off')
+    plt.show()
