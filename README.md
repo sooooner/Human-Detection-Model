@@ -2,9 +2,7 @@
 This is a repo that developed a single human detection model(Faster-RCNN) using data from the [Motion Keypoint Detection AI Contest](https://dacon.io/competitions/official/235701/overview/description) conducted by dacon.
 
 ## Description
-
-Project process description 
-+ Description  
+See ** human_detection.ipynb ** for a description and process of model implementation.
 
 ## Repo Structure
 
@@ -14,8 +12,7 @@ Project process description
     ├── data                                # Data doesn't go up to the repo.
     └── ...    
 └── saved_model/                        
-    ├── saved_model                         # Weights doesn't go up to the repo.
-    └── ...   
+    └── 1                                   # You can download it through the Saved model link below.
 └── utils/      
     └── models/                              
         ├── __init__.py 
@@ -53,7 +50,7 @@ You don't need to clone this repo, just run Dockerfile and the development envir
 ```terminal
 docker build --tag {repo image name}:{tag} .
 
-docker network {network name}
+docker network create {network name}
 docker run -it --name {volume container name} -v {data path}:/data --network {network name} ubuntu /bin/bash
 docker run -it -d --name {mysql name} -p 3306:3306 --network {network name} --volumes-from {volume container name} -e [MYSQL_ALLOW_EMPTY_PASSWORD=ture] mysql
 docker run -it -d --name {dev container name} -p 8888:8888 --network {network name} {repo image name}:{tag}
@@ -72,8 +69,9 @@ python train.py
 ```
 
 ### inference
-When model training is complete(or received a trained model), insert your image path and run inference.py, you can see the result.  
+When model training is complete(or received a trained model), modify your {model name} and run inference.py, you can see the result.  
 **Refer to inference.ipynb**
+
 ```terminal
 python inference.py 
 ```
