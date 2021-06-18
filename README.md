@@ -2,7 +2,7 @@
 This is a repo that developed a single human detection model(Faster-RCNN) using data from the [Motion Keypoint Detection AI Contest](https://dacon.io/competitions/official/235701/overview/description) conducted by dacon.
 
 ## Description
-See ** human_detection.ipynb ** for a description and process of model implementation.
+See **human_detection.ipynb** for a description and process of model implementation.
 
 ## Repo Structure
 
@@ -43,7 +43,7 @@ See ** human_detection.ipynb ** for a description and process of model implement
 Download the data through this [link](https://dacon.io/competitions/official/235701/overview/description)
 
 ### Saved model
-[link](https://drive.google.com/file/d/17IsXYQ6K7iC83RLMqyxiP3hibDJImIgM/view?usp=sharing)
+[link](https://drive.google.com/drive/folders/1obNLIS7Yhpr8TeHIKDN9Ve-iglDftSbD?usp=sharing)
 
 ### Development environment
 You don't need to clone this repo, just run Dockerfile and the development environment to run this repo image will be installed. And just follow the command line described below. (You can just clone and install requirements and use it.)
@@ -51,10 +51,10 @@ You don't need to clone this repo, just run Dockerfile and the development envir
 docker build --tag {repo image name}:{tag} .
 
 docker network create {network name}
-docker run -it --name {volume container name} -v {data path}:/data --network {network name} ubuntu /bin/bash
-docker run -it -d --name {mysql name} -p 3306:3306 --network {network name} --volumes-from {volume container name} -e [MYSQL_ALLOW_EMPTY_PASSWORD=ture] mysql
-docker run -it -d --name {dev container name} -p 8888:8888 --network {network name} {repo image name}:{tag}
-docker run -it -d --name {model server name} -p 8500:8500 -p 8501:8501 --network {network name} -v {saved model path}:/models/{model name} -e MODEL_NAME={model name} tensorflow/serving
+docker run -it [--name {volume container name}] -v {data path}:/data --network {network name} ubuntu /bin/bash
+docker run -it -d [--name {mysql name}] -p {sql port}:{sql port} --network {network name} --volumes-from {volume container name} -e [MYSQL_ALLOW_EMPTY_PASSWORD=ture] mysql
+docker run -it -d [--name {dev container name}] -p {dev port}:{dev port} --network {network name} {repo image name}:{tag}
+docker run -it -d [--name {model server name}] -p {server port1}:{server port1} -p {server port2}:{server port2} --network {network name} -v {saved model path}:/models/{model name} -e MODEL_NAME={model name} tensorflow/serving
 ```
 Then, you can create a container, connect it, and use it.
 
@@ -63,7 +63,7 @@ If you use MySQL, you can modify train.py and utils/db_uploader.py a little and 
 
 ### Training
 Running train.py will train the model and store the trained weights.  
-However, since it provides a trained model, there is no need to train it separately.
+However, since i provide a trained model, there is no need to train it separately.
 ```terminal
 python train.py
 ```
