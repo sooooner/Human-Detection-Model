@@ -40,7 +40,7 @@ def object_detection(file_name):
 
     headers = {"content-type": "application/json"}
     json_response = requests.post('http://host.docker.internal:8501/v1/models/frcnn:predict', data=data, headers=headers)
-
+    
     predictions = json.loads(json_response.text)['predictions']
 
     max_output_size = 3
@@ -88,5 +88,8 @@ def upload_file():
     return render_template("image.html", img=f)
 
 if __name__ == '__main__':
+    if not os.path.exists('./static'):
+        os.makedirs('./static')
+    os.makedirs('./static/uploads')
+    os.makedirs('./static/detect')
     app.run(debug=True)
-
