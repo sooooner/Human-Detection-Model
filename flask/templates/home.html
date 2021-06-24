@@ -1,0 +1,8 @@
+{% extends "base.html"  %}
+{% block content %}
+    <P>이미지를 업로드 해주세요</P>
+    <form action="/loading_page" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file1" accept="image/*," required>
+        <input type="submit" />
+    </form>
+{% endblock %}
