@@ -98,7 +98,8 @@ def main(path, host, user):
 
     buffer = BytesIO()
     cols = 'nose_x, nose_y, left_eye_x, left_eye_y, right_eye_x, right_eye_y, left_ear_x, left_ear_y, right_ear_x, right_ear_y, left_shoulder_x, left_shoulder_y, right_shoulder_x, right_shoulder_y, left_elbow_x, left_elbow_y, right_elbow_x, right_elbow_y, left_wrist_x, left_wrist_y,right_wrist_x, right_wrist_y, left_hip_x, left_hip_y, right_hip_x, right_hip_y, left_knee_x, left_knee_y, right_knee_x, right_knee_y,left_ankle_x, left_ankle_y, right_ankle_x, right_ankle_y, neck_x, neck_y, left_palm_x, left_palm_y, right_palm_x, right_palm_y, spine2_back_x, spine2_back_y, spine1_waist_x, spine1_waist_y, left_instep_x, left_instep_y, right_instep_x, right_instep_y'
-    for i in range(len(train)):
+    # for i in range(len(train)):
+    for i in range(len(10)):
         sql = f"INSERT INTO keypoint ({cols}) VALUES ({', '.join(list(map(str, train.iloc[i].values[1:])))})"
         cursor.execute(sql) 
         
