@@ -4,6 +4,9 @@ This is a repo that developed a single human detection model(Faster-RCNN) using 
 ## Description
 See **human_detection.ipynb** for a description and process of model implementation.
 
+## Demo
+You can run the model with your images on this [site](http://49.50.162.114/)
+
 ## Repo Structure
 
 ```
